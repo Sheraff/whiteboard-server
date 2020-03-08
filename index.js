@@ -1,7 +1,7 @@
 import http2 from 'http2'
 import fs from 'fs'
 import path from 'path'
-import mime from 'mime-type'
+import mime from 'mime-types'
 
 const {
 	HTTP2_HEADER_PATH,
@@ -10,11 +10,11 @@ const {
 	HTTP_STATUS_INTERNAL_SERVER_ERROR
 } = http2.constants
 
-const serverRoot = "./"
+const serverRoot = "./public"
 
 const server = http2.createSecureServer({
-	key: fs.readFileSync('localhost-privkey.pem'),
-	cert: fs.readFileSync('localhost-cert.pem')
+	key: fs.readFileSync('./server/ssl/localhost-privkey.pem'),
+	cert: fs.readFileSync('./server/ssl/localhost-cert.pem'),
 })
 server.on('error', (err) => console.error(err))
 server.on('connect', console.log)
@@ -22,17 +22,23 @@ server.on('ping', console.log)
 
 
 server.on('stream', (stream, headers) => {
-	const reqPath = headers[HTTP2_HEADER_PATH]
+	const reqPath = headers[':path'] === '/' ? '/index.html' : decodeURI(headers[':path'])
 	const reqMethod = headers[HTTP2_HEADER_METHOD]
 
 	const fullPath = path.join(serverRoot, reqPath)
+	const responseMimeType = mime.lookup(fullPath)
 
 	console.log(fullPath)
 
 	stream.respondWithFile(fullPath, {
+		'content-type': responseMimeType
 	}, {
 		onError: (err) => respondToStreamError(err, stream)
 	});
+
+	if(headers[':path'] === '/') {
+		push(stream, '/sw.js')
+	}
 
 	// stream.respond({
 	// 	'content-type': 'text/html',
@@ -52,6 +58,18 @@ function respondToStreamError(err, stream) {
 		stream.respond({ ":status": HTTP_STATUS_INTERNAL_SERVER_ERROR });
 	}
 	stream.end();
+}
+
+function push(stream, filePath) {
+	stream.pushStream({ ":path": filePath }, { parent: stream.id }, (err, pushStream, headers) => {
+		pushStream.respondWithFile(path.join(serverRoot, filePath), {
+			'content-type': mime.lookup(filePath)
+		}, {
+			onError: (err) => {
+				respondToStreamError(err, pushStream);
+			}
+		});
+	});
 }
 
 
