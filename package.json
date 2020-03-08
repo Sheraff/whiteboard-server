@@ -1,0 +1,23 @@
+{
+  "name": "whiteboard-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sheraff/whiteboard-server.git"
+  },
+  "author": "Florian Pellet",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Sheraff/whiteboard-server/issues"
+  },
+  "homepage": "https://github.com/Sheraff/whiteboard-server#readme",
+  "dependencies": {
+    "mime-type": "^3.0.7"
+  }
+}
