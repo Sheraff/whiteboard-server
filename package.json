@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/Sheraff/whiteboard-server#readme",
   "dependencies": {
-    "mime-types": "^2.1.26"
+    "mime-types": "^2.1.26",
+    "svgo": "^1.3.2"
   }
 }
