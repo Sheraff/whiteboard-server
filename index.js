@@ -20,12 +20,16 @@ const server = http2.createSecureServer({
 })
 server.on('error', (err) => console.error(err))
 server.on('session', (session) => {
+	console.log('session open')
 	session.on('goaway', console.log)
+	session.on('close', () => console.log('session close'))
+	session.on('stream', onStream)
 })
-// server.on('request', console.log)
+
+server.listen(5000)
 
 
-server.on('stream', (stream, headers) => {
+function onStream(stream, headers) {
 	const reqPath = headers[HTTP2_HEADER_PATH] === '/' ? '/index.html' : decodeURI(headers[HTTP2_HEADER_PATH])
 	const reqMethod = headers[HTTP2_HEADER_METHOD]
 
@@ -41,16 +45,7 @@ server.on('stream', (stream, headers) => {
 	if(headers[HTTP2_HEADER_PATH] === '/') {
 		INDEX_PUSH.forEach(path => push(stream, path))
 	}
-	
-	// stream.respond({
-	// 	'content-type': 'text/html',
-	// 	':status': 200
-	// })
-	// stream.end('<h1>Hello World</h1>')
-})
-
-server.listen(5000)
-
+}
 
 function respondToStreamError(err, stream) {
 	console.log(err);
@@ -73,37 +68,3 @@ function push(stream, filePath) {
 		});
 	});
 }
-
-
-// import fs from 'fs'
-// import http2 from 'http2'
-
-// const server = http2.createSecureServer(
-// 	{
-// 		key: fs.readFileSync('localhost-privkey.pem'),
-// 		cert: fs.readFileSync('localhost-cert.pem')
-// 	},
-// 	onRequest
-// )
-
-// function push(stream, filePath) {
-// 	const { file, headers } = getFile(filePath)
-// 	const pushHeaders = { [HTTP2_HEADER_PATH]: filePath }
-
-// 	stream.pushStream(pushHeaders, (pushStream) => {
-// 		pushStream.respondWithFD(file, headers)
-// 	})
-// }
-
-// function onRequest(req, res) {
-// 	// Push files with index.html
-// 	// if (reqPath === '/index.html') {
-// 	// 	push(res.stream, 'bundle1.js')
-// 	// 	push(res.stream, 'bundle2.js')
-// 	// }
-
-// 	// Serve file
-// 	res.stream.respondWithFD(file.fileDescriptor, file.headers)
-// }
-
-// server.listen(8843)
