@@ -1,3 +1,5 @@
+export const PUBLIC_ROOT = "./public"
+
 export const INDEX_PUSH = [
 	'/manifest.json',
 	'/style.css',
@@ -25,6 +27,5 @@ export const INDEX_PUSH = [
 	'/sw.js',
 	'/sw/alphabetCaching.js',
 	'/sw/Debouncer.js',
-	'/sw/graphlistCaching.js',
 	'/sw/staticImagesCaching.js',
 ]

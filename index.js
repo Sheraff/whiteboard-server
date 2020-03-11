@@ -2,7 +2,8 @@ import http2 from 'http2'
 import fs from 'fs'
 import path from 'path'
 import mime from 'mime-types'
-import { INDEX_PUSH } from './constants.js'
+import { INDEX_PUSH, PUBLIC_ROOT } from './constants.js'
+import makeIndex from './makeIndex.js'
 
 const {
 	HTTP2_HEADER_PATH,
@@ -11,8 +12,6 @@ const {
 	HTTP_STATUS_NOT_FOUND,
 	HTTP_STATUS_INTERNAL_SERVER_ERROR
 } = http2.constants
-
-const serverRoot = "./public"
 
 const server = http2.createSecureServer({
 	key: fs.readFileSync('./server/ssl/localhost-privkey.pem'),
@@ -33,17 +32,25 @@ function onStream(stream, headers) {
 	const reqPath = headers[HTTP2_HEADER_PATH] === '/' ? '/index.html' : decodeURI(headers[HTTP2_HEADER_PATH])
 	const reqMethod = headers[HTTP2_HEADER_METHOD]
 
-	const fullPath = path.join(serverRoot, reqPath)
+	const fullPath = path.join(PUBLIC_ROOT, reqPath)
 	const responseMimeType = mime.lookup(fullPath)
 
-	stream.respondWithFile(fullPath, {
-		'content-type': responseMimeType
-	}, {
-		onError: (err) => respondToStreamError(err, stream)
-	})
+	
 	
 	if(headers[HTTP2_HEADER_PATH] === '/') {
+		makeIndex().then(body => {
+			stream.respond({
+				'content-type': mime.contentType('text/html')
+			})
+			stream.end(body)
+		})
 		INDEX_PUSH.forEach(path => push(stream, path))
+	} else {
+		stream.respondWithFile(fullPath, {
+			'content-type': responseMimeType
+		}, {
+			onError: (err) => respondToStreamError(err, stream)
+		})
 	}
 }
 
@@ -59,7 +66,7 @@ function respondToStreamError(err, stream) {
 
 function push(stream, filePath) {
 	stream.pushStream({ [HTTP2_HEADER_PATH]: filePath }, { parent: stream.id }, (err, pushStream, headers) => {
-		pushStream.respondWithFile(path.join(serverRoot, filePath), {
+		pushStream.respondWithFile(path.join(PUBLIC_ROOT, filePath), {
 			'content-type': mime.lookup(filePath)
 		}, {
 			onError: (err) => {
