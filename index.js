@@ -45,6 +45,8 @@ http.createServer((req, res) => {
 
 
 function onStream(stream, headers) {
+
+	// swallow error b/c abrupt interrupt shouldn't kill server
 	stream.on('error', err => void console.log('stream', err))
 
 	if (headers[':method'] !== HTTP2_METHOD_GET)
@@ -69,6 +71,7 @@ function respondToStreamError(err, stream) {
 function push(stream, filePath) {
 	stream.pushStream({ [HTTP2_HEADER_PATH]: filePath }, { parent: stream.id }, (err, pushStream, headers) => {
 
+		// swallow error b/c abrupt interrupt shouldn't kill server
 		pushStream.on('error', err => void console.log('pushStream', err))
 
 		pushStream.respondWithFile(
