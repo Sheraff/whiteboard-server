@@ -8,6 +8,8 @@ export default async function makeIndex() {
 	return pageTemplate(await makeBody())
 }
 
+// TODO: use stream.write() to continuously output to stream instead of outputing in one single block with stream.end()
+
 async function makeBody() {
 	const folder = path.join(PUBLIC_ROOT, '/graphs')
 	const dataFile = path.join(PUBLIC_ROOT, '/data/graph_list.tsv')

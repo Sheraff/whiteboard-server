@@ -22,6 +22,8 @@ server.on('session', (session) => {
 	console.log('session open')
 	session.on('goaway', console.log)
 	session.on('close', () => console.log('session close'))
+	session.on('error', () => console.log('session error'))
+	session.on('frameError', () => console.log('session frameError'))
 	session.on('stream', onStream)
 })
 
@@ -35,6 +37,7 @@ function onStream(stream, headers) {
 	const fullPath = path.join(PUBLIC_ROOT, reqPath)
 	const responseMimeType = mime.lookup(fullPath)
 
+	stream.on('destroy', console.log)
 	
 	
 	if(headers[HTTP2_HEADER_PATH] === '/') {
@@ -48,9 +51,7 @@ function onStream(stream, headers) {
 	} else {
 		stream.respondWithFile(fullPath, {
 			'content-type': responseMimeType
-		}, {
-			onError: (err) => respondToStreamError(err, stream)
-		})
+		}, { onError: respondToStreamError })
 	}
 }
 
@@ -68,10 +69,6 @@ function push(stream, filePath) {
 	stream.pushStream({ [HTTP2_HEADER_PATH]: filePath }, { parent: stream.id }, (err, pushStream, headers) => {
 		pushStream.respondWithFile(path.join(PUBLIC_ROOT, filePath), {
 			'content-type': mime.lookup(filePath)
-		}, {
-			onError: (err) => {
-				respondToStreamError(err, pushStream);
-			}
-		});
-	});
+		}, { onError: respondToStreamError })
+	})
 }
