@@ -24,13 +24,15 @@ const server = http2.createSecureServer({
 
 server.on('session', (session) => {
 	session.on('stream', onStream)
-	session.setTimeout(TIMEOUT, () => void req.close(NGHTTP2_CANCEL))
+	session.setTimeout(TIMEOUT, () => void session.close(NGHTTP2_CANCEL))
 })
 
 server.listen(PORT)
 
 
 function onStream(stream, headers) {
+	stream.on('error', err => void console.log('stream', err))
+
 	if(headers[HTTP2_HEADER_PATH] === '/')
 		respondWithIndex(stream)
 	else
@@ -49,6 +51,7 @@ function respondToStreamError(err, stream) {
 
 function push(stream, filePath) {
 	stream.pushStream({ [HTTP2_HEADER_PATH]: filePath }, { parent: stream.id }, (err, pushStream, headers) => {
+		pushStream.on('error', err => void console.log('pushStream', err))
 		pushStream.respondWithFile(path.join(PUBLIC_ROOT, filePath), {
 			'content-type': mime.lookup(filePath)
 		}, { onError: respondToStreamError })
