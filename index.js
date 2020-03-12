@@ -5,12 +5,16 @@ import mime from 'mime-types'
 import { INDEX_PUSH, PUBLIC_ROOT } from './constants.js'
 import makeIndex from './makeIndex.js'
 
+const PORT = 5000
+const TIMEOUT = 4000
+
 const {
 	HTTP2_HEADER_PATH,
 	HTTP2_HEADER_STATUS,
 	HTTP2_HEADER_METHOD,
 	HTTP_STATUS_NOT_FOUND,
-	HTTP_STATUS_INTERNAL_SERVER_ERROR
+	HTTP_STATUS_INTERNAL_SERVER_ERROR,
+	NGHTTP2_CANCEL,
 } = http2.constants
 
 const server = http2.createSecureServer({
@@ -18,47 +22,19 @@ const server = http2.createSecureServer({
 	cert: fs.readFileSync('./server/ssl/localhost-cert.pem'),
 })
 
-let totalSessionsOpen = 0
-
-server.on('error', (err) => console.error(err))
 server.on('session', (session) => {
-	console.log('session open', ++totalSessionsOpen)
-	session.on('goaway', console.log)
-	session.on('error', () => console.log('session error'))
-	session.on('frameError', () => console.log('session frameError'))
-	session.on('close', () => console.log('session close', --totalSessionsOpen))
 	session.on('stream', onStream)
-	session.setTimeout(2000)
-	session.on('timeout', () => session.close())
+	session.setTimeout(TIMEOUT, () => void req.close(NGHTTP2_CANCEL))
 })
 
-server.listen(5000)
+server.listen(PORT)
 
 
 function onStream(stream, headers) {
-	const reqPath = headers[HTTP2_HEADER_PATH] === '/' ? '/index.html' : decodeURI(headers[HTTP2_HEADER_PATH])
-	const reqMethod = headers[HTTP2_HEADER_METHOD]
-
-	const fullPath = path.join(PUBLIC_ROOT, reqPath)
-	const responseMimeType = mime.lookup(fullPath)
-
-	stream.on('error', console.log)
-	stream.on('destroy', console.log)
-	
-	if(headers[HTTP2_HEADER_PATH] === '/') {
-		makeIndex().then(body => {
-			stream.respond({
-				'content-type': mime.contentType('text/html')
-			})
-			stream.end(body)
-		})
-		if(stream.pushAllowed)
-			INDEX_PUSH.forEach(path => push(stream, path))
-	} else {
-		stream.respondWithFile(fullPath, {
-			'content-type': responseMimeType
-		}, { onError: respondToStreamError })
-	}
+	if(headers[HTTP2_HEADER_PATH] === '/')
+		respondWithIndex(stream)
+	else
+		respondWithAnyFile(stream, headers)
 }
 
 function respondToStreamError(err, stream) {
@@ -77,4 +53,30 @@ function push(stream, filePath) {
 			'content-type': mime.lookup(filePath)
 		}, { onError: respondToStreamError })
 	})
+}
+
+function respondWithIndex(stream) {
+	makeIndex().then(body => {
+		stream.respond({
+			'content-type': mime.contentType('text/html')
+		})
+		stream.end(body)
+	})
+	if(stream.pushAllowed)
+		INDEX_PUSH.forEach(path => push(stream, path))
+}
+
+function respondWithAnyFile(stream, headers) {
+	let requestedPath = decodeURI(headers[HTTP2_HEADER_PATH])
+	if(!requestedPath.includes('.')) {
+		const bits = requestedPath.split('/')
+		const fileName = `graphs_${bits.pop()}.svg`
+		requestedPath = path.join(...bits, '/graphs', fileName)
+	}
+	const fullPath = path.join(PUBLIC_ROOT, requestedPath)
+	const responseMimeType = mime.lookup(fullPath)
+
+	stream.respondWithFile(fullPath, {
+		'content-type': responseMimeType
+	}, { onError: respondToStreamError })
 }
