@@ -17,12 +17,17 @@ const server = http2.createSecureServer({
 	key: fs.readFileSync('./server/ssl/localhost-privkey.pem'),
 	cert: fs.readFileSync('./server/ssl/localhost-cert.pem'),
 })
+
+let totalSessionsOpen = 0
+
 server.on('error', (err) => console.error(err))
 server.on('session', (session) => {
-	console.log('session open')
+	console.log('session open', ++totalSessionsOpen)
 	session.on('goaway', console.log)
-	session.on('close', () => console.log('session close'))
+	session.on('close', () => console.log('session close', --totalSessionsOpen))
 	session.on('stream', onStream)
+	session.setTimeout(2000)
+	session.on('timeout', () => session.close())
 })
 
 server.listen(5000)
@@ -35,7 +40,8 @@ function onStream(stream, headers) {
 	const fullPath = path.join(PUBLIC_ROOT, reqPath)
 	const responseMimeType = mime.lookup(fullPath)
 
-	
+	stream.on('error', console.log)
+	stream.on('destroy', console.log)
 	
 	if(headers[HTTP2_HEADER_PATH] === '/') {
 		makeIndex().then(body => {
@@ -44,7 +50,8 @@ function onStream(stream, headers) {
 			})
 			stream.end(body)
 		})
-		INDEX_PUSH.forEach(path => push(stream, path))
+		if(stream.pushAllowed)
+			INDEX_PUSH.forEach(path => push(stream, path))
 	} else {
 		stream.respondWithFile(fullPath, {
 			'content-type': responseMimeType
