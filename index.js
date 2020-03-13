@@ -1,14 +1,12 @@
 import http2 from 'http2'
 import http from 'http'
-import fs from 'fs'
 import path from 'path'
 import mime from 'mime-types'
 import { INDEX_PUSH, PUBLIC_ROOT } from './constants.js'
+import { CREDENTIALS, HTTPS_PORT, HTTP_PORT, TIMEOUT } from './local.env.js'
 import makeIndex from './makeIndex.js'
 
-const HTTPS_PORT = 5000 // 443
-const HTTP_PORT = 5001 // 80
-const TIMEOUT = 4000
+
 
 // respond w/ 404 if file doesn't exist
 // stream index instead of .end(body)
@@ -25,17 +23,13 @@ const {
 	HTTP2_METHOD_GET,
 } = http2.constants
 
-const server = http2.createSecureServer({
-	key: fs.readFileSync('./server/ssl/localhost-privkey.pem'),
-	cert: fs.readFileSync('./server/ssl/localhost-cert.pem'),
-})
+const server = http2.createSecureServer(CREDENTIALS)
 
 server.on('stream', onStream)
 
 // server.on('session', (session) => {
 // 	session.setTimeout(TIMEOUT, () => void session.close(NGHTTP2_CANCEL))
 // })
-
 
 server.listen(HTTPS_PORT)
 
