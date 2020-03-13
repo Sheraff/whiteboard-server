@@ -36,10 +36,11 @@ server.on('stream', onStream)
 // 	session.setTimeout(TIMEOUT, () => void session.close(NGHTTP2_CANCEL))
 // })
 
+
 server.listen(HTTPS_PORT)
 
-
 http.createServer((req, res) => {
+	console.log('HTTP 301 redirect')
 	res.writeHead(301, { "Location": "https://" + req.headers['host'] + req.url })
 	res.end()
 }).listen(HTTP_PORT)
