@@ -105,6 +105,7 @@ const pageTemplate = (body) => `
 
 <div id="dom-tricks">
 	<template id="svg-card">
+		<div class="background"></div>
 		<link rel="stylesheet" href="/components/Card.css">
 		<slot name="internal-link"></slot>
 		<span class="credits">
@@ -112,9 +113,11 @@ const pageTemplate = (body) => `
 			<slot name="external-link"></slot>
 		</span>
 		<slot name="date"></slot>
-		<slot name="static"></slot>
-		<slot></slot>
-		<slot name="erase"></slot>
+		<div class="containment">
+			<slot name="static"></slot>
+			<slot></slot>
+			<slot name="erase"></slot>
+		</div>
 	</template>
 </div>
 `
