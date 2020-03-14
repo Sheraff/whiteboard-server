@@ -1,31 +1,32 @@
 export const PUBLIC_ROOT = "./public"
 
-export const INDEX_PUSH = [
-	'/manifest.json',
-	'/style.css',
-	'/script.js',
-	'/functions/extendSVG.js',
+export const STYLE_PUSH = [
+	'/components/Card.css',
+]
+
+export const SCRIPT_PUSH = [
+	'/components/Card.js',
+	'/modules/ReadySVGNode.js',
+	'/modules/IdlePromise.js',
 	'/functions/hex2hsl.js',
+	'/components/Grid.js',
+	'/modules/Routing.js',
+	'/functions/extendSVG.js',
 	'/functions/svgToImageBlob.js',
 	'/interfaces/IdleNetwork.js',
 	'/interfaces/IndexedDB.js',
 	'/interfaces/SWJpegBlobUploader.js',
 	'/interfaces/SWState.js',
 	'/modules/Alphabet.js',
-	'/modules/IdlePromise.js',
-	'/modules/ReadySVGNode.js',
-	'/modules/Routing.js',
 	'/modules/SVGAnim.js',
 	'/modules/TextToAlphabet.js',
 	'/workers/idleNetworkWorker.js',
 	'/workers/indexedDBWorker.js',
-	'/data/graph_list.tsv',
-	'/data/alphabet.json',
-	'/components/Card.css',
-	'/components/Card.js',
-	'/components/Grid.js',
-	'/sw.js',
-	'/sw/alphabetCaching.js',
+]
+
+export const SW_PUSH = [
 	'/sw/Debouncer.js',
+	'/sw/alphabetCaching.js',
+	'/data/alphabet.json',
 	'/sw/staticImagesCaching.js',
 ]

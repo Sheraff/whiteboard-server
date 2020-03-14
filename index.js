@@ -2,7 +2,7 @@ import http2 from 'http2'
 import http from 'http'
 import path from 'path'
 import mime from 'mime-types'
-import { INDEX_PUSH, PUBLIC_ROOT } from './constants.js'
+import { PUBLIC_ROOT, STYLE_PUSH, SCRIPT_PUSH, SW_PUSH } from './constants.js'
 import { CREDENTIALS, HTTPS_PORT, HTTP_PORT, TIMEOUT } from './local.env.js'
 import { streamIndex } from './makeIndex.js'
 
@@ -51,6 +51,12 @@ function onStream(stream, headers) {
 
 	if (headers[HTTP2_HEADER_PATH] === '/')
 		respondWithIndex(stream)
+	else if (headers[HTTP2_HEADER_PATH] === '/style.css')
+		respondWithPushList(stream, headers, STYLE_PUSH, '/style.css')
+	else if (headers[HTTP2_HEADER_PATH] === '/script.js')
+		respondWithPushList(stream, headers, SCRIPT_PUSH, '/script.js')
+	else if (headers[HTTP2_HEADER_PATH] === '/sw.js')
+		respondWithPushList(stream, headers, SW_PUSH, '/sw.js')
 	else
 		respondWithAnyFile(stream, headers)
 }
@@ -92,6 +98,13 @@ function push(stream, filePath) {
 //                > alphabetCaching.js > alphabet.json
 //                > staticImagesCaching.js
 
+async function respondWithPushList(stream, headers, pushList, debugName) {
+	console.log(debugName, 'pushing along', stream.pushAllowed)
+	if (stream.pushAllowed)
+		pushList.forEach(path => push(stream, path))
+	respondWithAnyFile(stream, headers)
+}
+
 async function respondWithIndex(stream) {
 	// in theory, a PUSH_PROMISE should be sent before the response to the request (or at least the push promise header frame)
 	// https://developers.google.com/web/fundamentals/performance/http2#push_promise_101
@@ -104,9 +117,6 @@ async function respondWithIndex(stream) {
 	// if possible, try to push less bytes than available in congestion window (including final stream response)
 	// use stream.localWindowSize or stream.remoteWindowSize for this?
 	// would require maintining a table of file sizes (built on server startup)
-
-	if (stream.pushAllowed)
-		INDEX_PUSH.forEach(path => push(stream, path))
 
 	stream.respond({ 
 		[HTTP2_HEADER_STATUS]: 200,
