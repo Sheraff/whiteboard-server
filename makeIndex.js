@@ -4,31 +4,31 @@ import fs from 'fs'
 
 const NUMBER_OF_FULL_GRAPHS = 20
 
-export default async function makeIndex() {
-	return pageTemplate(await makeBody())
-}
+export async function streamIndex(stream) {
+	stream.write(head)
 
-// TODO: use stream.write() to continuously output to stream instead of outputing in one single block with stream.end()
-
-async function makeBody() {
 	const folder = path.join(PUBLIC_ROOT, '/graphs')
 	const dataFile = path.join(PUBLIC_ROOT, '/data/graph_list.tsv')
 	const tsv = fs.readFileSync(dataFile, 'utf8')
-	const data = tsvToJson(tsv)
-
+	const data = tsvToJson(tsv).reverse()
 	const now = Date.now()
 
-	return await Promise.all(data.reverse().map(async (graph, index) => {
+	for (let index = 0; index < data.length; index++) {
+		const graph = data[index]
 		if (new Date(graph.release) < now) {
 
-			if(index > NUMBER_OF_FULL_GRAPHS)
-				return cardTemplate(graph)
+			if(index > NUMBER_OF_FULL_GRAPHS) {
+				stream.write(cardTemplate(graph))
+				continue
+			}
 			
 			const file = path.join(folder, `/graphs_${graph.name}.svg`)
 			const svg = await readFilePromise(file, 'utf8')
-			return cardTemplate(graph, svg)
+			stream.write(cardTemplate(graph, svg))
 		}
-	})).then(results => results.join(''))
+	}
+
+	stream.write(foot)
 }
 
 function readFilePromise(path, options) {
@@ -64,7 +64,7 @@ const cardTemplate = (graph, svg) => `
 </svg-card>
 `
 
-const pageTemplate = (body) => `
+const head = `
 <!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -100,7 +100,9 @@ const pageTemplate = (body) => `
 </nav>
 
 <grid-layout>
-	${body}
+`
+
+const foot = `
 </grid-layout>
 
 <div id="dom-tricks">

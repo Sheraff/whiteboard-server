@@ -4,7 +4,7 @@ import path from 'path'
 import mime from 'mime-types'
 import { INDEX_PUSH, PUBLIC_ROOT } from './constants.js'
 import { CREDENTIALS, HTTPS_PORT, HTTP_PORT, TIMEOUT } from './local.env.js'
-import makeIndex from './makeIndex.js'
+import { streamIndex } from './makeIndex.js'
 
 
 
@@ -18,6 +18,7 @@ const {
 	HTTP2_HEADER_METHOD,
 	HTTP_STATUS_NOT_FOUND,
 	HTTP_STATUS_INTERNAL_SERVER_ERROR,
+	HTTP2_HEADER_CONTENT_TYPE,
 	NGHTTP2_CANCEL,
 	NGHTTP2_REFUSED_STREAM,
 	HTTP2_METHOD_GET,
@@ -76,7 +77,7 @@ function push(stream, filePath) {
 
 			pushStream.respondWithFile(
 				path.join(PUBLIC_ROOT, filePath),
-				{ 'content-type': mime.lookup(filePath) },
+				{ [HTTP2_HEADER_CONTENT_TYPE]: mime.lookup(filePath) },
 				{ onError: respondToStreamError }
 			)
 		}
@@ -91,7 +92,7 @@ function push(stream, filePath) {
 //                > alphabetCaching.js > alphabet.json
 //                > staticImagesCaching.js
 
-function respondWithIndex(stream) {
+async function respondWithIndex(stream) {
 	// in theory, a PUSH_PROMISE should be sent before the response to the request (or at least the push promise header frame)
 	// https://developers.google.com/web/fundamentals/performance/http2#push_promise_101
 
@@ -106,10 +107,13 @@ function respondWithIndex(stream) {
 
 	if (stream.pushAllowed)
 		INDEX_PUSH.forEach(path => push(stream, path))
-	makeIndex().then(body => {
-		stream.respond({ 'content-type': mime.contentType('text/html') })
-		stream.end(body)
+
+	stream.respond({ 
+		[HTTP2_HEADER_STATUS]: 200,
+		[HTTP2_HEADER_CONTENT_TYPE]: mime.contentType('text/html') 
 	})
+	await streamIndex(stream)
+	stream.end()
 }
 
 function respondWithAnyFile(stream, headers) {
@@ -117,7 +121,7 @@ function respondWithAnyFile(stream, headers) {
 	const { ext, name, dir } = path.parse(requestedPath)
 
 	if(dir === '/static') {
-		// TODO: this is to prevent crashes, but these requests shouldn't reach the server
+		// TODO: 🚧 this is to prevent crashes, but these requests shouldn't reach the server 🚧
 		console.log('requested static', requestedPath)
 		stream.respond({ [HTTP2_HEADER_STATUS]: HTTP_STATUS_NOT_FOUND }, { endStream: true })
 		return
@@ -132,7 +136,7 @@ function respondWithAnyFile(stream, headers) {
 
 	stream.respondWithFile(
 		fullPath,
-		{ 'content-type': responseMimeType },
+		{ [HTTP2_HEADER_CONTENT_TYPE]: responseMimeType },
 		{ onError: respondToStreamError }
 	)
 }
