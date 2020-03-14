@@ -83,6 +83,14 @@ function push(stream, filePath) {
 	)
 }
 
+// critical path: script.js > Card.js > ReadySVGNode.js > IdlePromise.js
+//                                                      > hex2hsl.js
+//                          > Grid.js > Routing.js
+
+// SW path: sw.js > Debouncer.js
+//                > alphabetCaching.js > alphabet.json
+//                > staticImagesCaching.js
+
 function respondWithIndex(stream) {
 	// in theory, a PUSH_PROMISE should be sent before the response to the request (or at least the push promise header frame)
 	// https://developers.google.com/web/fundamentals/performance/http2#push_promise_101
