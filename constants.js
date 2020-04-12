@@ -9,6 +9,7 @@ export const SCRIPT_PUSH = [
 	'/modules/ReadySVGNode.js',
 	'/modules/IdlePromise.js',
 	'/functions/hex2hsl.js',
+	'/functions/makeSingleton.js',
 	'/components/Grid.js',
 	'/modules/Routing.js',
 	'/functions/extendSVG.js',
