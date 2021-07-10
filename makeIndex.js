@@ -54,10 +54,8 @@ const cardTemplate = (graph, svg) => `
 <svg-card name="${graph.name}" tags="${graph.tags}">
 	<a slot="internal-link" href="/${graph.name}"></a>
 	${graph.author ? `
-		<span class="credits">
-			<span slot="author">${graph.credit}</span>
-			<a slot="external-link" href="${graph.source}">${graph.author}</a>
-		</span>
+		<span slot="author">${graph.credit}</span>
+		<a slot="external-link" href="${graph.source}">${graph.author}</a>
 	` : ''}
 	<span slot="date">${graph.release}</span>
 	${svg || ''}
